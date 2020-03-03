@@ -22,24 +22,31 @@ public class PC {
     // Size of list is 10. 
     LinkedList<String> list = new LinkedList<>(); 
     int capacity = 10; 
+    private boolean isProduce = true;
 
     // Function called by producer thread 
     public void produce() throws Exception { 
         LinkedList<String> data = getData();
         while (true) { 
             synchronized (this){ 
-          // producer thread waits while list is full 
-          while (list.size() == capacity) 
-              wait(); 
+            
+            if(data.isEmpty()){
+                isProduce = false;
+                notify();
+                break;
+            }
+            // producer thread waits while list is full 
+            while (list.size() == capacity) 
+                wait(); 
 
-          // to insert the jobs in the list 
-          list.add(data.pollFirst()); 
-          
-          // notifies the consumer thread that now it can start consuming 
-          notify(); 
+            // to insert the jobs in the list 
+            list.add(data.pollFirst()); 
+            
+            // notifies the consumer thread that now it can start consuming 
+            notify(); 
 
-          // makes the working of program easier to  understand 
-          Thread.sleep(10); 
+            // makes the working of program easier to  understand 
+            Thread.sleep(10); 
         } 
       } 
     } 
@@ -48,11 +55,17 @@ public class PC {
     public void consume() throws InterruptedException, IOException, ExecutionException {
         String outputPath = "./data/ThreadOut.txt";
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath)));
-        try {
-            while (true) { 
-                synchronized (this) { 
-                // consumer thread waits while list 
-                // is empty 
+        
+        while (true) { 
+            synchronized (this) { 
+
+                if(!isProduce){
+                    writer.close();
+                    break;
+                }
+
+            // consumer thread waits while list 
+            // is empty 
                 while (list.size() == 0) 
                     wait(); 
                 
@@ -79,10 +92,7 @@ public class PC {
                 notify(); 
                 // and sleep 
                 Thread.sleep(10); 
-                }
             }
-        }finally {
-            writer.close();
         }
     } 
 
